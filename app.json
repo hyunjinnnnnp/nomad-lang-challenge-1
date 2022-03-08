@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "nomad-lang-challenge-1",
+    "slug": "nomad-lang-challenge-1",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "nomad-lang-challenge-1"
+}
