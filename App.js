@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Animated, PanResponder, View, Easing, Text } from "react-native";
 import icons from "./icons";
 
+const MAIN_COLOR = "#09b0b6";
 const CIRCLE_WIDTH = "100";
 const ICONS_LENGTH = icons.length;
 
@@ -15,7 +16,7 @@ const getRandomIconIndex = (min, max) =>
 
 const Container = styled.View`
   position: relative;
-  background-color: #09b0b6;
+  background-color: ${MAIN_COLOR};
   width: 100%;
   height: 100%;
   justify-content: center;
@@ -53,12 +54,33 @@ const Word = styled(Animated.createAnimatedComponent(Text))`
   font-weight: 800;
 `;
 
-const Answer = styled(Animated.createAnimatedComponent(View))`
+const Checking = styled(Animated.createAnimatedComponent(View))`
   position: absolute;
   background-color: white;
   width: ${CIRCLE_WIDTH}px;
   height: ${CIRCLE_WIDTH}px;
   border-radius: 50px;
+`;
+
+const Answer = styled(Animated.createAnimatedComponent(View))`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+`;
+
+const AnswerIconContainer = styled(Animated.createAnimatedComponent(View))`
+  background-color: white;
+  border-radius: 50px;
+  padding: 10px;
+`;
+
+const AnswerWord = styled(Animated.createAnimatedComponent(Text))`
+  color: white;
+  font-size: 25px;
+  font-weight: 800;
+  margin-top: 10px;
 `;
 
 export default function App() {
@@ -67,13 +89,20 @@ export default function App() {
   const [randomIndex, setRandomIndex] = useState(0);
   const [randomTruthy, setRandomTruthy] = useState(0);
   const [correct, setCorrect] = useState(false);
+
   const position = useRef(new Animated.ValueXY()).current;
+  const quizOpacity = useRef(new Animated.Value(1)).current;
   const wordBgScale = useRef(new Animated.Value(0)).current;
   const wordBgOpacity = useRef(new Animated.Value(0)).current;
   const wordScale = useRef(new Animated.Value(1)).current;
   // Answer Icon
   const checkScale = useRef(new Animated.Value(0)).current;
   const checkOpacity = useRef(new Animated.Value(1)).current;
+  const answerIconOpacity = useRef(new Animated.Value(0)).current;
+  const answerIconScale = useRef(new Animated.Value(0)).current;
+  const answerWordSize = useRef(new Animated.Value(0)).current;
+  const answerTranslate = useRef(new Animated.Value(0)).current;
+
   const getIcons = () => {
     setIconIndex((prev) => prev + 1);
     const random = getRandomTruthy();
@@ -81,11 +110,6 @@ export default function App() {
     const randomIcon = getRandomIconIndex(0, ICONS_LENGTH + 1);
     setRandomIndex(randomIcon);
   };
-  const resetAnswerIcon = () => {
-    checkScale.setValue(0);
-    checkOpacity.setValue(1);
-  };
-
   // Animations
   const wordBgScaleIn = Animated.timing(wordBgScale, {
     toValue: 1,
@@ -116,24 +140,61 @@ export default function App() {
     useNativeDriver: true,
   });
 
-  const checkScaleOne = Animated.spring(checkScale, {
+  const checkScaleIn = Animated.spring(checkScale, {
     toValue: 3,
     easing: Easing.bounce,
     useNativeDriver: true,
   });
-  const checkScaleTwo = Animated.timing(checkScale, {
+  const checkScaleMore = Animated.timing(checkScale, {
     toValue: 20,
     useNativeDriver: true,
   });
-  const checkOpacityTwo = Animated.spring(checkOpacity, {
+  const checkFadeOut = Animated.spring(checkOpacity, {
     toValue: 0,
     useNativeDriver: true,
   });
-
-  const correctAnswerAnim = Animated.sequence([
-    checkScaleOne,
-    Animated.parallel([checkScaleTwo, checkOpacityTwo]),
+  const checkAnim = Animated.sequence([
+    checkScaleIn,
+    Animated.parallel([checkScaleMore, checkFadeOut]),
   ]);
+  const answerIconScaleIn = Animated.timing(answerIconScale, {
+    toValue: 4,
+    useNativeDriver: true,
+  });
+  const answerWordScale = Animated.timing(answerWordSize, {
+    toValue: 1,
+    useNativeDriver: true,
+  });
+  const answerTranslateDown = Animated.timing(answerTranslate, {
+    toValue: 1000,
+    useNativeDriver: true,
+    delay: 1000,
+  });
+
+  const answerAnim = Animated.sequence([
+    Animated.parallel([answerIconScaleIn, answerWordScale]),
+    answerTranslateDown,
+  ]);
+
+  const resetAnswer = () => {
+    answerTranslate.setValue(0);
+    answerIconOpacity.setValue(0);
+    answerIconScale.setValue(0);
+    answerWordSize.setValue(0);
+    quizOpacity.setValue(1);
+  };
+
+  const resetCheckIcon = () => {
+    checkScale.setValue(0);
+    checkOpacity.setValue(1);
+    answerIconOpacity.setValue(1);
+    answerAnim.start(resetAnswer);
+  };
+  const answerWordTranslate = answerWordSize.interpolate({
+    inputRange: [0, 1],
+    outputRange: [70, 140],
+    extrapolate: "clamp",
+  });
 
   // Pan Responders
   const panResponder = useMemo(
@@ -169,18 +230,22 @@ export default function App() {
           // !ramdomTruthy 일 경우 left icon이 정답
           if (!randomTruthy && dx < -80) {
             setCorrect(true);
-            correctAnswerAnim.start(resetAnswerIcon);
+            quizOpacity.setValue(0);
+            checkAnim.start(resetCheckIcon);
           } else if (!randomTruthy && dx > 80) {
             setCorrect(false);
-            correctAnswerAnim.start(resetAnswerIcon);
+            quizOpacity.setValue(0);
+            checkAnim.start(resetCheckIcon);
           }
           // ramdomTruthy 일 경우 right icon이 정답
           if (randomTruthy && dx > -80) {
             setCorrect(true);
-            correctAnswerAnim.start(resetAnswerIcon);
+            quizOpacity.setValue(0);
+            checkAnim.start(resetCheckIcon);
           } else if (randomTruthy && dx < 80) {
             setCorrect(false);
-            correctAnswerAnim.start(resetAnswerIcon);
+            quizOpacity.setValue(0);
+            checkAnim.start(resetCheckIcon);
           }
 
           position.setValue({ x: 0, y: 0 });
@@ -205,7 +270,7 @@ export default function App() {
 
   return (
     <Container>
-      <Answer
+      <Checking
         style={{
           opacity: checkOpacity,
           transform: [{ scale: checkScale }],
@@ -221,10 +286,48 @@ export default function App() {
             fontWeight: 900,
           }}
         />
+      </Checking>
+      <Answer
+        style={{
+          transform: [{ translateY: answerTranslate }],
+        }}
+      >
+        <AnswerIconContainer
+          style={{
+            transform: [{ scale: answerIconScale }],
+            opacity: answerIconOpacity,
+          }}
+        >
+          <Ionicons
+            name={icons[iconIndex - 1]}
+            color={MAIN_COLOR}
+            size={60}
+            style={{
+              lineHeight: 60,
+              textAlign: "center",
+              fontWeight: 900,
+            }}
+          />
+        </AnswerIconContainer>
+        <AnswerWord
+          style={{
+            opacity: answerIconOpacity,
+            transform: [
+              { scale: answerWordSize },
+              { translateY: answerWordTranslate },
+            ],
+          }}
+        >
+          {icons[iconIndex - 1]}
+        </AnswerWord>
       </Answer>
-      <Quiz>
+      <Quiz style={{ opacity: quizOpacity }}>
         <Ionicons
-          name={!randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+          name={
+            !randomTruthy
+              ? icons[iconIndex]
+              : icons[randomIndex === iconIndex ? randomIndex + 1 : randomIndex]
+          }
           color="white"
           size={60}
         />
