@@ -135,24 +135,12 @@ export default function App() {
     Animated.parallel([checkScaleTwo, checkOpacityTwo]),
   ]);
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.parallel([wordBgScaleIn, wordBgFadeIn]),
-        Animated.parallel([wordBgScaleOut, wordBgFadeOut]),
-      ])
-    ).start();
-  }, [wordBgScale]);
-  useEffect(() => {
-    getIcons();
-  }, []);
-
   // Pan Responders
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
-        onPanResponderGrant: (_, { dx }) => {
+        onPanResponderGrant: () => {
           wordScaleOut.start();
           position.setOffset({
             x: position.x._value,
@@ -169,41 +157,52 @@ export default function App() {
           position.flattenOffset();
 
           if (dy < -80 || dy > 80) {
-            console.log("다시 해주세요");
             position.setValue({ x: 0, y: 0 });
             wordScale.setValue(1);
             return;
           }
-
-          if (!randomTruthy) {
-            // left icon 에 닿으면 정답
-            if (dx < -80) {
-              setCorrect(true);
-              correctAnswerAnim.start(resetAnswerIcon);
-            } else if (dx > 80) {
-              setCorrect(false);
-              correctAnswerAnim.start(resetAnswerIcon);
-            }
-            // right 에 닿으면 오답
-          } else {
-            if (dx > -80) {
-              setCorrect(true);
-              correctAnswerAnim.start(resetAnswerIcon);
-            } else if (dx < 80) {
-              setCorrect(false);
-              correctAnswerAnim.start(resetAnswerIcon);
-            }
+          if (dx > -80 && dx < 80) {
+            position.setValue({ x: 0, y: 0 });
+            wordScale.setValue(1);
+            return;
+          }
+          // !ramdomTruthy 일 경우 left icon이 정답
+          if (!randomTruthy && dx < -80) {
+            setCorrect(true);
+            correctAnswerAnim.start(resetAnswerIcon);
+          } else if (!randomTruthy && dx > 80) {
+            setCorrect(false);
+            correctAnswerAnim.start(resetAnswerIcon);
+          }
+          // ramdomTruthy 일 경우 right icon이 정답
+          if (randomTruthy && dx > -80) {
+            setCorrect(true);
+            correctAnswerAnim.start(resetAnswerIcon);
+          } else if (randomTruthy && dx < 80) {
+            setCorrect(false);
+            correctAnswerAnim.start(resetAnswerIcon);
           }
 
           position.setValue({ x: 0, y: 0 });
           wordScale.setValue(1);
           getIcons();
-          console.log("NOW : ", randomTruthy);
         },
       }),
     [iconIndex, correct]
   );
-  // State
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([wordBgScaleIn, wordBgFadeIn]),
+        Animated.parallel([wordBgScaleOut, wordBgFadeOut]),
+      ])
+    ).start();
+  }, [wordBgScale]);
+  useEffect(() => {
+    getIcons();
+  }, []);
+
   return (
     <Container>
       <Answer
