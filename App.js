@@ -1,12 +1,20 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import styled from "styled-components/native";
 import { Ionicons } from "@expo/vector-icons";
-import { Animated, PanResponder, View, Easing, Text } from "react-native";
+import {
+  Animated,
+  PanResponder,
+  View,
+  Easing,
+  Text,
+  Dimensions,
+} from "react-native";
 import icons from "./icons";
 
 const MAIN_COLOR = "#09b0b6";
 const CIRCLE_WIDTH = "100";
 const ICONS_LENGTH = icons.length;
+const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
 
 // returns random number 0 or 1
 const getRandomTruthy = () => Math.floor(Math.random() * 2);
@@ -16,24 +24,34 @@ const getRandomIconIndex = (min, max) =>
 
 const Container = styled.View`
   position: relative;
-  background-color: ${MAIN_COLOR};
-  width: 100%;
-  height: 100%;
   justify-content: center;
   align-items: center;
+  background-color: ${MAIN_COLOR};
+  flex: 1;
+`;
+
+const Edge = styled.View`
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  /* position: absolute;
+  border: 1px solid red;
+  justify-content: center;
+  align-items: center;
+  width: 80%;
+  max-width: 600px; */
 `;
 
 const Quiz = styled(Animated.createAnimatedComponent(View))`
-  flex: 1;
   width: 100%;
-  height: 100%;
   flex-direction: row;
   align-items: center;
   justify-content: space-evenly;
 `;
 
 const WordContainer = styled(Animated.createAnimatedComponent(View))`
-  /* position: relative; */
   width: ${CIRCLE_WIDTH}px;
   height: ${CIRCLE_WIDTH}px;
   justify-content: center;
@@ -253,7 +271,7 @@ export default function App() {
           getIcons();
         },
       }),
-    [iconIndex, correct]
+    [iconIndex, randomIndex, randomTruthy, correct]
   );
 
   useEffect(() => {
@@ -270,87 +288,91 @@ export default function App() {
 
   return (
     <Container>
-      <Checking
-        style={{
-          opacity: checkOpacity,
-          transform: [{ scale: checkScale }],
-        }}
-      >
-        <Ionicons
-          name={correct ? "checkmark" : "close"}
-          color={correct ? "green" : "red"}
-          size={80}
+      <Edge>
+        <Checking
           style={{
-            lineHeight: 100,
-            textAlign: "center",
-            fontWeight: 900,
-          }}
-        />
-      </Checking>
-      <Answer
-        style={{
-          transform: [{ translateY: answerTranslate }],
-        }}
-      >
-        <AnswerIconContainer
-          style={{
-            transform: [{ scale: answerIconScale }],
-            opacity: answerIconOpacity,
+            opacity: checkOpacity,
+            transform: [{ scale: checkScale }],
           }}
         >
           <Ionicons
-            name={icons[iconIndex - 1]}
-            color={MAIN_COLOR}
-            size={60}
+            name={correct ? "checkmark" : "close"}
+            color={correct ? "green" : "red"}
+            size={80}
             style={{
-              lineHeight: 60,
+              lineHeight: 100,
               textAlign: "center",
               fontWeight: 900,
             }}
           />
-        </AnswerIconContainer>
-        <AnswerWord
+        </Checking>
+        <Answer
           style={{
-            opacity: answerIconOpacity,
-            transform: [
-              { scale: answerWordSize },
-              { translateY: answerWordTranslate },
-            ],
+            transform: [{ translateY: answerTranslate }],
           }}
         >
-          {icons[iconIndex - 1]}
-        </AnswerWord>
-      </Answer>
-      <Quiz style={{ opacity: quizOpacity }}>
-        <Ionicons
-          name={
-            !randomTruthy
-              ? icons[iconIndex]
-              : icons[randomIndex === iconIndex ? randomIndex + 1 : randomIndex]
-          }
-          color="white"
-          size={60}
-        />
-        <WordContainer
-          {...panResponder.panHandlers}
-          style={{ transform: position.getTranslateTransform() }}
-        >
-          <WordBg
+          <AnswerIconContainer
             style={{
-              transform: [{ scale: wordBgScale }],
-              opacity: wordBgOpacity,
+              transform: [{ scale: answerIconScale }],
+              opacity: answerIconOpacity,
             }}
+          >
+            <Ionicons
+              name={icons[iconIndex - 1]}
+              color={MAIN_COLOR}
+              size={60}
+              style={{
+                lineHeight: 60,
+                textAlign: "center",
+                fontWeight: 900,
+              }}
+            />
+          </AnswerIconContainer>
+          <AnswerWord
+            style={{
+              opacity: answerIconOpacity,
+              transform: [
+                { scale: answerWordSize },
+                { translateY: answerWordTranslate },
+              ],
+            }}
+          >
+            {icons[iconIndex - 1]}
+          </AnswerWord>
+        </Answer>
+        <Quiz style={{ opacity: quizOpacity }}>
+          <Ionicons
+            name={
+              !randomTruthy
+                ? icons[iconIndex]
+                : icons[
+                    randomIndex === iconIndex ? randomIndex + 1 : randomIndex
+                  ]
+            }
+            color="white"
+            size={60}
           />
-          <Word style={{ transform: [{ scale: wordScale }] }}>
-            {icons[iconIndex]}
-          </Word>
-        </WordContainer>
-        <Ionicons
-          name={randomTruthy ? icons[iconIndex] : icons[randomIndex]}
-          color="white"
-          size={60}
-        />
-      </Quiz>
+          <WordContainer
+            {...panResponder.panHandlers}
+            style={{ transform: position.getTranslateTransform() }}
+          >
+            <WordBg
+              style={{
+                transform: [{ scale: wordBgScale }],
+                opacity: wordBgOpacity,
+              }}
+            />
+            <Word style={{ transform: [{ scale: wordScale }] }}>
+              {icons[iconIndex]}
+            </Word>
+          </WordContainer>
+          <Ionicons
+            name={randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+            color="white"
+            size={60}
+          />
+        </Quiz>
+      </Edge>
     </Container>
   );
 }
