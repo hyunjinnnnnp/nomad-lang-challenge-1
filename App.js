@@ -1,18 +1,17 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import styled from "styled-components/native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Animated,
-  PanResponder,
-  View,
-  Easing,
-  Text,
-  StyleSheet,
-} from "react-native";
+import { Animated, PanResponder, View, Easing, Text } from "react-native";
 import icons from "./icons";
 
 const CIRCLE_WIDTH = "100";
 const ICONS_LENGTH = icons.length;
+
+// returns random number 0 or 1
+const getRandomTruthy = () => Math.floor(Math.random() * 2);
+// max exclusive: should be ICONS_LENGTH + 1
+const getRandomIconIndex = (min, max) =>
+  Math.floor(Math.random() * (max - min) + min);
 
 const Container = styled.View`
   position: relative;
@@ -63,22 +62,29 @@ const Answer = styled(Animated.createAnimatedComponent(View))`
 `;
 
 export default function App() {
-  // Values
+  // VALUES
   const [iconIndex, setIconIndex] = useState(0);
   const [randomIndex, setRandomIndex] = useState(0);
   const [randomTruthy, setRandomTruthy] = useState(0);
-  // returns random number 0 or 1
-  const getRandomTruthy = () => Math.floor(Math.random() * 2);
-  // max exclusive: should be ICONS_LENGTH + 1
-  const getRandomIconIndex = (min, max) =>
-    Math.floor(Math.random() * (max - min) + min);
+  const [correct, setCorrect] = useState(false);
   const position = useRef(new Animated.ValueXY()).current;
   const wordBgScale = useRef(new Animated.Value(0)).current;
   const wordBgOpacity = useRef(new Animated.Value(0)).current;
   const wordScale = useRef(new Animated.Value(1)).current;
-
+  // Answer Icon
   const checkScale = useRef(new Animated.Value(0)).current;
   const checkOpacity = useRef(new Animated.Value(1)).current;
+  const getIcons = () => {
+    setIconIndex((prev) => prev + 1);
+    const random = getRandomTruthy();
+    setRandomTruthy(random);
+    const randomIcon = getRandomIconIndex(0, ICONS_LENGTH + 1);
+    setRandomIndex(randomIcon);
+  };
+  const resetAnswerIcon = () => {
+    checkScale.setValue(0);
+    checkOpacity.setValue(1);
+  };
 
   // Animations
   const wordBgScaleIn = Animated.timing(wordBgScale, {
@@ -124,13 +130,10 @@ export default function App() {
     useNativeDriver: true,
   });
 
-  const getIcons = () => {
-    setIconIndex((prev) => prev + 1);
-    const random = getRandomTruthy();
-    setRandomTruthy(random);
-    const randomIcon = getRandomIconIndex(0, ICONS_LENGTH + 1);
-    setRandomIndex(randomIcon);
-  };
+  const correctAnswerAnim = Animated.sequence([
+    checkScaleOne,
+    Animated.parallel([checkScaleTwo, checkOpacityTwo]),
+  ]);
 
   useEffect(() => {
     Animated.loop(
@@ -145,37 +148,61 @@ export default function App() {
   }, []);
 
   // Pan Responders
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: (_, { dx }) => {
-        wordScaleOut.start();
-        position.setOffset({
-          x: position.x._value,
-          y: position.y._value,
-        });
-      },
-      onPanResponderMove: (_, { dx, dy }) => {
-        position.setValue({
-          x: dx,
-          y: dy,
-        });
-      },
-      onPanResponderRelease: () => {
-        position.flattenOffset();
-        // 정답이면 체크 아이콘
-        Animated.sequence([
-          checkScaleOne,
-          Animated.parallel([checkScaleTwo, checkOpacityTwo]),
-        ]).start();
-        position.setValue({ x: 0, y: 0 });
-        wordScale.setValue(1);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderGrant: (_, { dx }) => {
+          wordScaleOut.start();
+          position.setOffset({
+            x: position.x._value,
+            y: position.y._value,
+          });
+        },
+        onPanResponderMove: (_, { dx, dy }) => {
+          position.setValue({
+            x: dx,
+            y: dy,
+          });
+        },
+        onPanResponderRelease: (_, { dx, dy }) => {
+          position.flattenOffset();
 
-        getIcons();
-        // 아니면 ??
-      },
-    })
-  ).current;
+          if (dy < -80 || dy > 80) {
+            console.log("다시 해주세요");
+            position.setValue({ x: 0, y: 0 });
+            wordScale.setValue(1);
+            return;
+          }
+
+          if (!randomTruthy) {
+            // left icon 에 닿으면 정답
+            if (dx < -80) {
+              setCorrect(true);
+              correctAnswerAnim.start(resetAnswerIcon);
+            } else if (dx > 80) {
+              setCorrect(false);
+              correctAnswerAnim.start(resetAnswerIcon);
+            }
+            // right 에 닿으면 오답
+          } else {
+            if (dx > -80) {
+              setCorrect(true);
+              correctAnswerAnim.start(resetAnswerIcon);
+            } else if (dx < 80) {
+              setCorrect(false);
+              correctAnswerAnim.start(resetAnswerIcon);
+            }
+          }
+
+          position.setValue({ x: 0, y: 0 });
+          wordScale.setValue(1);
+          getIcons();
+          console.log("NOW : ", randomTruthy);
+        },
+      }),
+    [iconIndex, correct]
+  );
   // State
   return (
     <Container>
@@ -186,8 +213,8 @@ export default function App() {
         }}
       >
         <Ionicons
-          name="checkmark"
-          color="green"
+          name={correct ? "checkmark" : "close"}
+          color={correct ? "green" : "red"}
           size={80}
           style={{
             lineHeight: 100,
@@ -198,7 +225,7 @@ export default function App() {
       </Answer>
       <Quiz>
         <Ionicons
-          name={randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+          name={!randomTruthy ? icons[iconIndex] : icons[randomIndex]}
           color="white"
           size={60}
         />
@@ -217,7 +244,7 @@ export default function App() {
           </Word>
         </WordContainer>
         <Ionicons
-          name={!randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+          name={randomTruthy ? icons[iconIndex] : icons[randomIndex]}
           color="white"
           size={60}
         />
