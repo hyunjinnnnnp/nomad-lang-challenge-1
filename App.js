@@ -64,6 +64,14 @@ const Answer = styled(Animated.createAnimatedComponent(View))`
 
 export default function App() {
   // Values
+  const [iconIndex, setIconIndex] = useState(0);
+  const [randomIndex, setRandomIndex] = useState(0);
+  const [randomTruthy, setRandomTruthy] = useState(0);
+  // returns random number 0 or 1
+  const getRandomTruthy = () => Math.floor(Math.random() * 2);
+  // max exclusive: should be ICONS_LENGTH + 1
+  const getRandomIconIndex = (min, max) =>
+    Math.floor(Math.random() * (max - min) + min);
   const position = useRef(new Animated.ValueXY()).current;
   const wordBgScale = useRef(new Animated.Value(0)).current;
   const wordBgOpacity = useRef(new Animated.Value(0)).current;
@@ -101,6 +109,7 @@ export default function App() {
     toValue: 0.5,
     useNativeDriver: true,
   });
+
   const checkScaleOne = Animated.spring(checkScale, {
     toValue: 3,
     easing: Easing.bounce,
@@ -115,6 +124,14 @@ export default function App() {
     useNativeDriver: true,
   });
 
+  const getIcons = () => {
+    setIconIndex((prev) => prev + 1);
+    const random = getRandomTruthy();
+    setRandomTruthy(random);
+    const randomIcon = getRandomIconIndex(0, ICONS_LENGTH + 1);
+    setRandomIndex(randomIcon);
+  };
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -123,6 +140,9 @@ export default function App() {
       ])
     ).start();
   }, [wordBgScale]);
+  useEffect(() => {
+    getIcons();
+  }, []);
 
   // Pan Responders
   const panResponder = useRef(
@@ -136,7 +156,6 @@ export default function App() {
         });
       },
       onPanResponderMove: (_, { dx, dy }) => {
-        console.log(dx);
         position.setValue({
           x: dx,
           y: dy,
@@ -149,6 +168,10 @@ export default function App() {
           checkScaleOne,
           Animated.parallel([checkScaleTwo, checkOpacityTwo]),
         ]).start();
+        position.setValue({ x: 0, y: 0 });
+        wordScale.setValue(1);
+
+        getIcons();
         // 아니면 ??
       },
     })
@@ -174,7 +197,11 @@ export default function App() {
         />
       </Answer>
       <Quiz>
-        <Ionicons name={icons[1]} color="white" size={60} />
+        <Ionicons
+          name={randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+          color="white"
+          size={60}
+        />
         <WordContainer
           {...panResponder.panHandlers}
           style={{ transform: position.getTranslateTransform() }}
@@ -185,9 +212,15 @@ export default function App() {
               opacity: wordBgOpacity,
             }}
           />
-          <Word style={{ transform: [{ scale: wordScale }] }}>단어</Word>
+          <Word style={{ transform: [{ scale: wordScale }] }}>
+            {icons[iconIndex]}
+          </Word>
         </WordContainer>
-        <Ionicons name="pizza" color="white" size={60} />
+        <Ionicons
+          name={!randomTruthy ? icons[iconIndex] : icons[randomIndex]}
+          color="white"
+          size={60}
+        />
       </Quiz>
     </Container>
   );
