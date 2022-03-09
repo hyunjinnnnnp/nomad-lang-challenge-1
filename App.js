@@ -14,8 +14,7 @@ import icons from "./icons";
 const MAIN_COLOR = "#09b0b6";
 const CIRCLE_WIDTH = "100";
 const ICONS_LENGTH = icons.length;
-const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
-
+const { height: WINDOW_HEIGHT } = Dimensions.get("window");
 // returns random number 0 or 1
 const getRandomTruthy = () => Math.floor(Math.random() * 2);
 // max exclusive: should be ICONS_LENGTH + 1
@@ -36,12 +35,6 @@ const Edge = styled.View`
   align-items: center;
   width: 100%;
   max-width: 800px;
-  /* position: absolute;
-  border: 1px solid red;
-  justify-content: center;
-  align-items: center;
-  width: 80%;
-  max-width: 600px; */
 `;
 
 const Quiz = styled(Animated.createAnimatedComponent(View))`
@@ -78,6 +71,7 @@ const Checking = styled(Animated.createAnimatedComponent(View))`
   width: ${CIRCLE_WIDTH}px;
   height: ${CIRCLE_WIDTH}px;
   border-radius: 50px;
+  padding: 10px;
 `;
 
 const Answer = styled(Animated.createAnimatedComponent(View))`
@@ -158,16 +152,17 @@ export default function App() {
     useNativeDriver: true,
   });
 
-  const checkScaleIn = Animated.spring(checkScale, {
+  const checkScaleIn = Animated.timing(checkScale, {
     toValue: 3,
     easing: Easing.bounce,
     useNativeDriver: true,
   });
   const checkScaleMore = Animated.timing(checkScale, {
     toValue: 20,
+    easing: Easing.linear,
     useNativeDriver: true,
   });
-  const checkFadeOut = Animated.spring(checkOpacity, {
+  const checkFadeOut = Animated.timing(checkOpacity, {
     toValue: 0,
     useNativeDriver: true,
   });
@@ -176,15 +171,20 @@ export default function App() {
     Animated.parallel([checkScaleMore, checkFadeOut]),
   ]);
   const answerIconScaleIn = Animated.timing(answerIconScale, {
-    toValue: 4,
+    toValue: 3,
+    easing: Easing.ease,
     useNativeDriver: true,
+    duration: 100,
   });
   const answerWordScale = Animated.timing(answerWordSize, {
     toValue: 1,
+    easing: Easing.ease,
     useNativeDriver: true,
+    duration: 100,
   });
-  const answerTranslateDown = Animated.timing(answerTranslate, {
-    toValue: 1000,
+  const answerTranslateDown = Animated.spring(answerTranslate, {
+    toValue: WINDOW_HEIGHT,
+    speed: 80,
     useNativeDriver: true,
     delay: 1000,
   });
@@ -300,7 +300,7 @@ export default function App() {
             color={correct ? "green" : "red"}
             size={80}
             style={{
-              lineHeight: 100,
+              lineHeight: 80,
               textAlign: "center",
               fontWeight: 900,
             }}
@@ -320,9 +320,9 @@ export default function App() {
             <Ionicons
               name={icons[iconIndex - 1]}
               color={MAIN_COLOR}
-              size={60}
+              size={80}
               style={{
-                lineHeight: 60,
+                lineHeight: 80,
                 textAlign: "center",
                 fontWeight: 900,
               }}
